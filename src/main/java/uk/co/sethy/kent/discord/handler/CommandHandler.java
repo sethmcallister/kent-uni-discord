@@ -1,19 +1,20 @@
 package uk.co.sethy.kent.discord.handler;
 
-import discord4j.core.event.domain.message.MessageCreateEvent;
-import discord4j.core.object.entity.Member;
-import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.MessageChannel;
-import org.reactivestreams.Publisher;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 import uk.co.sethy.kent.discord.command.annotations.Command;
 import uk.co.sethy.kent.discord.command.annotations.Param;
 import uk.co.sethy.kent.discord.command.commands.HelpCommand;
+import uk.co.sethy.kent.discord.command.commands.PlayCommand;
+import uk.co.sethy.kent.discord.command.commands.SummonCommand;
 import uk.co.sethy.kent.discord.command.objects.CommandData;
 import uk.co.sethy.kent.discord.command.objects.ParamData;
 import uk.co.sethy.kent.discord.command.transformer.ParameterTransformer;
@@ -27,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-public class CommandHandler {
+public class CommandHandler extends ListenerAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandHandler.class);
     private static Map<Class<?>, ParameterTransformer> parameterTransformerMap = new HashMap<>();
 
@@ -41,19 +42,11 @@ public class CommandHandler {
     public void load() {
         this.commandDataList = new ArrayList<>();
 
+        discordHandler.registerListener(this);
+
         registerClass(HelpCommand.class);
-
-        discordHandler.getDiscordClient().withGateway(gateway -> {
-            Publisher<?> command = gateway.on(MessageCreateEvent.class, event ->
-                Mono.just(event.getMessage())
-                        .filter(message -> event.getMember().isPresent())
-                        .filter(message -> message.getContent().toLowerCase().contains(commandPrefix.toLowerCase()))
-                        .flatMap(Message::getChannel)
-                        .flatMap(channel -> findAndExecuteCommand(event.getMember().get(), channel, event.getMessage().getContent()))
-            );
-
-            return Mono.when(command);
-        }).block();
+        registerClass(SummonCommand.class);
+        registerClass(PlayCommand.class);
     }
 
     public void registerClass(Class<?> registeredClass) {
@@ -63,6 +56,13 @@ public class CommandHandler {
                 registerMethod(method);
             }
         }
+    }
+
+    @Override
+    public void onGuildMessageReceived(GuildMessageReceivedEvent e) {
+        if (!e.getMessage().getContentRaw().startsWith(commandPrefix)) return;
+
+        findAndExecuteCommand(e.getMember(), e.getChannel(), e.getMessage().getContentRaw());
     }
 
     private void registerMethod(Method method) {
@@ -84,7 +84,7 @@ public class CommandHandler {
         commandDataList.add(new CommandData(method, command, paramData));
     }
 
-    public Mono<CommandData> findAndExecuteCommand(Member member, MessageChannel channel, String message) {
+    public CommandData findAndExecuteCommand(Member member, MessageChannel channel, String message) {
         for (CommandData command : this.commandDataList) {
             String[] names = command.getNames();
             int length = names.length;
@@ -101,14 +101,14 @@ public class CommandHandler {
                     }
 
                     command.execute(member, channel, args);
-                    return Mono.just(command);
+                    return command;
                 } else {
                     i++;
                 }
             }
         }
         LOGGER.warn("CommandHandler.findAndExecuteCommand :: Failed to find command meeting message {}", message);
-        return Mono.empty();
+        return null;
     }
 
     public static Object transformParameter(Member member, String parameter, Class<?> transformTo) {

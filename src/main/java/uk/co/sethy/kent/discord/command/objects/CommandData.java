@@ -1,10 +1,8 @@
 package uk.co.sethy.kent.discord.command.objects;
 
-import discord4j.core.object.entity.Member;
-import discord4j.core.object.entity.channel.Channel;
-import discord4j.core.object.entity.channel.MessageChannel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.sethy.kent.discord.command.annotations.Command;
@@ -29,7 +27,7 @@ public class CommandData {
         this.parameters = paramData;
         this.method = method;
 
-        LOGGER.info("CommandData.<init> :: Created new command {} [flags: {}]", this.names, this.flags);
+        LOGGER.debug("CommandData.<init> :: Created new command {} [flags: {}]", this.names, this.flags);
     }
 
     public void execute(final Member member, final MessageChannel channel, String[] args) {
@@ -56,6 +54,8 @@ public class CommandData {
         }
 
         try {
+            LOGGER.debug("CommandData.execute :: {} has executed {} [args: {}]", member.getEffectiveName(), this.names, args);
+
             // ensure method is accessible
             this.method.setAccessible(true);
             this.method.invoke(null, transformedParams.toArray(new Object[0]));
