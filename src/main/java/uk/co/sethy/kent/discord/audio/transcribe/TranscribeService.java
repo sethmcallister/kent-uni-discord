@@ -13,7 +13,7 @@ public class TranscribeService {
 
     public TranscribeSource getInstance() {
         switch (transcribeSourceType) {
-            // Currently only one implmented source
+            // Currently only one implemented source
             default:
                 return googleTranscribeSource;
         }

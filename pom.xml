@@ -33,7 +33,6 @@
             <version>${discord.jda.version}</version>
         </dependency>
 
-
         <!-- LavaPlayer -->
         <dependency>
             <groupId>com.sedmelluq</groupId>
@@ -53,6 +52,12 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.9</version>
+        </dependency>
+
+        <!-- Google GCP -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-speech</artifactId>
         </dependency>
     </dependencies>
 
@@ -87,4 +92,15 @@
         </repository>
     </repositories>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>8.1.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
